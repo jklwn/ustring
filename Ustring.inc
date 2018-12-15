@@ -223,14 +223,16 @@ TYPE DWSTR_ AS DWSTR
 
 
 TYPE DWSTR
+      m_pBuffer AS UBYTE PTR        ' Pointer to the buffer (in first place make strptr possible)
 
    Private:
       m_Capacity AS Ulong            ' The total size of the buffer
       m_GrowSize AS LONG = 260 * 2  ' How much to grow the buffer by when required
       m_CodePage AS ulong            ' Unicode code page
 
+
    Public:
-      m_pBuffer AS UBYTE PTR        ' Pointer to the buffer
+'      m_pBuffer AS UBYTE PTR        ' Pointer to the buffer
       m_BufferLen AS ulong           ' Length in bytes of the current string in the buffer
 
       DECLARE CONSTRUCTOR

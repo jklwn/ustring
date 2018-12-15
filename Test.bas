@@ -1035,6 +1035,32 @@ dim z as long
 
   scope
     
+    '' strptr
+    scope
+      dim w as wstring * 50 = y
+      dim u as ustring = y
+      dim w1 as wstring * 50
+      dim u1 as ustring 
+      dim p1 as wstring ptr
+      dim p2 as wstring ptr
+
+      p1 = strptr(w)
+      p2 = strptr(u)
+
+      w1 = *p1
+      u1 = *p2
+
+      hCheckString(u1, w1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - STRPTR"
+        print "  u1: -" + u1 + "-"
+        print "  w1: -" + w1 + "-"
+      end if
+    end scope
+
     '' wchr
     scope
       dim w as wstring * 50 = wchr( 1234 )
