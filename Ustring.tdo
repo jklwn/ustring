@@ -1,0 +1,3 @@
+- #include "ustring.inc" /bi. -> ifdef AFX use josé´s dws, otherwise use official one, set ustring accordingly and add string
+  helper function, my version gets obsolete then (no need to include in "preprocess.inc" anymore
+

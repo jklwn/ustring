@@ -1,0 +1,11 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+# BASIC source files (need cr/lf line endings)
+*.bas   eol=crlf
+*.bi    eol=crlf
+*.inc   eol=crlf
+*.h     eol=crlf
+*.bat   eol=crlf
+*.txt   eol=crlf
+*.jkp   eol=crlf
+*.rc    eol=crlf

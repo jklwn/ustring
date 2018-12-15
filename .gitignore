@@ -1,0 +1,13 @@
+# list of files/filetypes to ignore in this worktree
+Thumbs.db
+Desktop.ini
+_git_
+*.tmp
+*.tmc
+*.tmi
+*.log
+*.bak
+*.a
+*.exe
+*.dll
+*.sll
