@@ -1055,9 +1055,34 @@ dim z as long
       if r = 1 then
         x = 1
         print
-        print "  ERROR (line#: " & __LINE__ & ") - STRPTR"
+        print "  ERROR (line#: " & __LINE__ & ") - STRPTR (WSTRING/USTRING)"
         print "  u1: -" + u1 + "-"
         print "  w1: -" + w1 + "-"
+      end if
+    end scope
+
+    scope
+      dim z as zstring * 50 = y
+      dim s as string = y
+      dim z1 as zstring * 50
+      dim s1 as string 
+      dim p1 as zstring ptr
+      dim p2 as zstring ptr
+
+      p1 = strptr(z)
+      p2 = strptr(s)
+
+      z1 = *p1
+      s1 = *p2
+
+      hCheckString(s1, z1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - STRPTR (STRING/ZSTRING)"
+        print "  s: -" + hex(strptr(s), 8) + "-"
+        print "  z: -" + hex(strptr(z), 8) + "-"
       end if
     end scope
 
