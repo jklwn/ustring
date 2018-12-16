@@ -13,3 +13,4 @@ _git_
 *.sll
 *.asm
 *.c
+/*.asm
