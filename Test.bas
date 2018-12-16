@@ -2153,8 +2153,8 @@ dim y1 as wstring * 64 = !"wstring\u4644"             'wide string
 dim y2 as wstring * 64 = "фывапр" '"ФЫВАПР"                     'Russian
 dim y3 as wstring * 64 = "1234567"                    'numbers
                                                       
-                                                      
-                                                      
+
+
   print "********** lcase string **********"
   print
   z =  typetest(y)                                    'do initial tests (type specific)
