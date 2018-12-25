@@ -1,6 +1,6 @@
 D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Ustring.jkp
-2
-6
+3
+5
 Ustring
 Code files from Ustring folder
 64
@@ -10,14 +10,20 @@ Code files from Ustring folder
 0|0|0
 0
 0
-D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Ustring.inc
-2
+D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Test.bas
+0
 0|0|0|0
 0
 1
 1|64
-D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Test.bas
+D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Ustring2.inc
 0
+0|0|0|0
+0
+0
+1|64
+D:\Pbwin10\Ide\Projects\Freebasic\Ustring\Ustring.inc
+1
 0|0|0|0
 0
 1

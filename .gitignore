@@ -14,3 +14,4 @@ _git_
 *.asm
 *.c
 /*.asm
+test1.*
