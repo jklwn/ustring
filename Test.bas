@@ -1,6 +1,11 @@
 ﻿#compiler freebasic
-#compile console 32 exe /o "-R"
+'#compile console 32 exe /o "-R"
 '#compile console 32 exe /o "-gen gcc -R"
+'#compile console 32 exe /o "-gen gcc -R -exx"       
+'#compile console 32 exe /o "-R -w pedantic -exx"
+
+'#compile console 64 exe /o "-gen gcc -Wc -O3 -R"
+#compile console 32 exe /o "-gen gcc -Wc -O3 -R"
 '#compile console 64 exe /o "-R"
 
 
@@ -10,7 +15,8 @@
 
 
 #define unicode
-#include once "windows.bi"
+'#include once "windows.bi"
+'#include once "crt\mem.bi"
 
 
 #define jklw                                          'use "ustring.inc" alone
@@ -42,35 +48,6 @@
 
 
 '***********************************************************************************************
-' to do:   
-
-'sadd/varptr/strptr -> ok   
-'asc -> ok                    
-'l/r/trim -> ok
-'select case -> ok (compiler)
-'left/right -> ok (overloaded functions needed)
-'mid statement/function -> ok (compiler)
-'lcase/ucase -> ok
-'instr(rev) -> ok
-'l/rset -> ok
-
-'CBOOL -> ok
-'CBYTE
-'CSHORT
-'CINT
-'CLNG
-'CLNGINT
-'CUBYTE
-'CUSHORT
-'CUINT
-'CULNG
-'CULNGINT
-'CSNG
-'CDBL
-'CPTR
-
-
-' len
 
 ' MKD/I/L/LONGINT/S/SHORT  ?
 ' CVD/I/L/LONGINT/S/SHORT  ?
@@ -1977,7 +1954,7 @@ function conversiontest_5(byref u as ustring, byref w as wstring, byval flag as 
 '***********************************************************************************************
 ' return conversion (out)
 '***********************************************************************************************
-dim w1 as wstring * 128
+dim w1 as wstring * 260
 
 
   if flag then
@@ -2274,7 +2251,7 @@ end function
 '***********************************************************************************************
 
 
-function helpertest(byref y as wstring, cc as ulong = 1, uflag as long = 0) as long
+function helpertest(byref y as wstring, byval cc as ulong = 1, byval uflag as long = 0) as long
 '***********************************************************************************************
 ' do exhaustive tests with all available string types (ZSTRING, STRING, WSTRING and USTRING)
 ' fencepost on both sides + variations in the middle, covering all options
@@ -5149,7 +5126,7 @@ st = "ustring"
 
 '***********************************************************************************************
 ' pathname
-'***********************************************************************************************
+'***********************************************************************************************goto ende
 
 
   print "pathname_: ",,,
@@ -5170,28 +5147,28 @@ st = "zstring"
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "c:\test test test\" & " - " & pathname_(path_, z)
+    print "c:\test test test\" & " - " & pathname_(path, z)
   end if
 
   if pathname_(name, z) <> "very_strange name.asdf" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "very_strange name.asdf" & " - " & pathname_(name_, z)
+    print "very_strange name.asdf" & " - " & pathname_(name, z)
   end if
 
   if pathname_(namex, z) <> "very_strange name.asdf.txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name + extension " & st 
-    print "very_strange name.asdf.txt" & " - " & pathname_(namex_, z)
+    print "very_strange name.asdf.txt" & " - " & pathname_(namex, z)
   end if
 
   if pathname_(extn, z) <> ".txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname extension " & st 
-    print ".txt" & " - " & pathname_(extn_, z)
+    print ".txt" & " - " & pathname_(extn, z)
   end if
 
 '***********************************************************************************************
@@ -5202,28 +5179,28 @@ st = "string"
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "c:\test test test\" & " - " & pathname_(path_, s)
+    print "c:\test test test\" & " - " & pathname_(path, s)
   end if
 
   if pathname_(name, s) <> "very_strange name.asdf" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "very_strange name.asdf" & " - " & pathname_(name_, s)
+    print "very_strange name.asdf" & " - " & pathname_(name, s)
   end if
 
   if pathname_(namex, s) <> "very_strange name.asdf.txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name + extension " & st 
-    print "very_strange name.asdf.txt" & " - " & pathname_(namex_, s)
+    print "very_strange name.asdf.txt" & " - " & pathname_(namex, s)
   end if
 
   if pathname_(extn, s) <> ".txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname extension " & st 
-    print ".txt" & " - " & pathname_(extn_, s)
+    print ".txt" & " - " & pathname_(extn, s)
   end if
 
 '***********************************************************************************************
@@ -5234,28 +5211,28 @@ st = "wstring"
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "c:\test test test\" & " - " & pathname_(path_, w)
+    print "c:\test test test\" & " - " & pathname_(path, w)
   end if
 
   if pathname_(name, w) <> "very_strange name.asdf" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "very_strange name.asdf" & " - " & pathname_(name_, w)
+    print "very_strange name.asdf" & " - " & pathname_(name, w)
   end if
 
   if pathname_(namex, w) <> "very_strange name.asdf.txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name + extension " & st 
-    print "very_strange name.asdf.txt" & " - " & pathname_(namex_, w)
+    print "very_strange name.asdf.txt" & " - " & pathname_(namex, w)
   end if
 
   if pathname_(extn, w) <> ".txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname extension " & st 
-    print ".txt" & " - " & pathname_(extn_, w)
+    print ".txt" & " - " & pathname_(extn, w)
   end if
 
 '***********************************************************************************************
@@ -5266,28 +5243,28 @@ st = "ustring"
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "c:\test test test\" & " - " & pathname_(path_, u)
+    print "c:\test test test\" & " - " & pathname_(path, u)
   end if
 
   if pathname_(name, u) <> "very_strange name.asdf" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name " & st 
-    print "very_strange name.asdf" & " - " & pathname_(name_, u)
+    print "very_strange name.asdf" & " - " & pathname_(name, u)
   end if
 
   if pathname_(namex, u) <> "very_strange name.asdf.txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname name + extension " & st 
-    print "very_strange name.asdf.txt" & " - " & pathname_(namex_, u)
+    print "very_strange name.asdf.txt" & " - " & pathname_(namex, u)
   end if
 
   if pathname_(extn, u) <> ".txt" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - pathname extension " & st 
-    print ".txt" & " - " & pathname_(extn_, u)
+    print ".txt" & " - " & pathname_(extn, u)
   end if
 
 
@@ -5320,7 +5297,7 @@ st = "ustring"
 '   isnumeric ?
 '   
 '***********************************************************************************************
-
+ende:
 
   if n = 0 then
     function = 0

@@ -39,8 +39,9 @@ const dq = chr(34)
 '***********************************************************************************************
 
 
-' const path_  = 1                                      'path$
  const any_   = 1                                      'any$
+
+' const path_  = 1                                      'path$
 ' const name_  = 2                                      'name$
 ' const namex_ = 3                                      'namex$
 ' const extn_  = 4                                      'extn$
@@ -68,6 +69,7 @@ const case_  = 1                                      'case$
       #define ustring jk.DWSTR                        'use replacement
 
     #else
+'      #define ustring jk.DWSTR                        'use replacement
       #define ustring afx.CWSTR                       'use WinFBX´s dynamic Unicode string
 
     #endif
@@ -101,24 +103,24 @@ const case_  = 1                                      'case$
 ' this is mostly a clone of his code with a "JK_" prefix
 '***********************************************************************************************
 
-common shared ustring_mtwc as function(BYVAL CodePage AS Ulong, BYVAL dwFlags AS Ulong, BYVAL lpMultiByteStr AS zstring ptr, _
-                                       BYVAL cbMultiByte AS LONG, BYVAL lpWideCharStr AS wstring ptr, BYVAL cchWideChar AS LONG) AS long
-
-common shared ustring_wctm as function(BYVAL CodePage AS Ulong, BYVAL dwFlags AS ulong, BYVAL lpWideCharStr AS wstring ptr, _
-                                       BYVAL cchWideChar AS LONG, BYVAL lpMultiByteStr AS zstring ptr, BYVAL cbMultiByte AS LONG, BYVAL lpDefaultChar AS byte ptr, BYVAL lpUsedDefaultChar AS Long ptr) AS long
-
-
-Dim As Any Ptr ustring_k_library = Dylibload("Kernel32.dll")
-  ustring_mtwc = Dylibsymbol(ustring_k_library, "MultiByteToWideChar")
-  ustring_wctm = Dylibsymbol(ustring_k_library, "WideCharToMultiByte")
-
-
-CONST ustring_CP_UTF8 = 65001
-CONST ustring_MB_PRECOMPOSED = &h00000001
+'common shared ustring_mtwc as function(BYVAL CodePage AS Ulong, BYVAL dwFlags AS Ulong, BYVAL lpMultiByteStr AS zstring ptr, _
+'                                       BYVAL cbMultiByte AS LONG, BYVAL lpWideCharStr AS wstring ptr, BYVAL cchWideChar AS LONG) AS long
+'
+'common shared ustring_wctm as function(BYVAL CodePage AS Ulong, BYVAL dwFlags AS ulong, BYVAL lpWideCharStr AS wstring ptr, _
+'                                       BYVAL cchWideChar AS LONG, BYVAL lpMultiByteStr AS zstring ptr, BYVAL cbMultiByte AS LONG, BYVAL lpDefaultChar AS byte ptr, BYVAL lpUsedDefaultChar AS Long ptr) AS long
+'
+'
+'Dim As Any Ptr ustring_k_library = Dylibload("Kernel32.dll")
+'  ustring_mtwc = Dylibsymbol(ustring_k_library, "MultiByteToWideChar")
+'  ustring_wctm = Dylibsymbol(ustring_k_library, "WideCharToMultiByte")
+'
+'
+'CONST ustring_CP_UTF8 = 65001
+'CONST ustring_MB_PRECOMPOSED = &h00000001
 
 
 #ifdef  __FB_64BIT__
-private sub ustring_mcpy(dest as any ptr, src as any ptr, count as uinteger)
+private sub ustring_mcpy(byval dest as any ptr, byval src as any ptr, byval count as Uinteger)
 '***********************************************************************************************
 ' memcpy replacement
 '***********************************************************************************************
@@ -153,7 +155,7 @@ end sub
 
 #else
 
-private sub ustring_mcpy(dest as any ptr, src as any ptr, count as Ulong)
+private sub ustring_mcpy(byval dest as any ptr, byval src as any ptr, byval count as Ulong)
 '***********************************************************************************************
 ' memcpy replacement
 '***********************************************************************************************
@@ -223,7 +225,7 @@ TYPE DWSTR_ AS DWSTR                                  'Forward reference
 
 
 TYPE DWSTR
-  m_pBuffer AS UBYTE PTR                              'pointer to the buffer (in first place make strptr possible)
+  m_pBuffer AS UBYTE PTR                              'pointer to the buffer (in first place -> make strptr possible)
 
   Private:
     m_Capacity AS Ulong                               'the total size of the buffer
@@ -655,29 +657,76 @@ PRIVATE SUB DWSTR.Add (BYVAL pwszStr AS WSTRING PTR)
 
 END SUB
 
+'PRIVATE SUB DWSTR.Add (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
+'  DWSTR_DP("DWSTR Add STRING Code page = " & .WSTR (nCodePage))
+'
+'  IF LEN(ansiStr) = 0 THEN RETURN
+'  ' Create the wide string from the incoming ansi string
+'  DIM dwLen AS ulong, pbuffer AS ANY PTR
+'  IF nCodePage = 0 THEN nCodePage = m_CodePage
+'  IF nCodePage = ustring_CP_UTF8 THEN
+''      dwLen = MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), NULL, 0)
+'    dwLen = ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), 0, 0)
+'    IF dwLen = 0 THEN RETURN
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'
+'  ELSE
+'    dwLen = .LEN(ansiStr)
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(m_CodePage, MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(m_CodePage, ustring_MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'  END IF
+'  IF pbuffer THEN
+'
+'    this.AppendBuffer(pbuffer, dwLen)                 'copy the string into the buffer and update the length
+'    Deallocate(pbuffer)
+'  END IF
+
+
 PRIVATE SUB DWSTR.Add (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
   DWSTR_DP("DWSTR Add STRING Code page = " & .WSTR (nCodePage))
 
   IF LEN(ansiStr) = 0 THEN RETURN
   ' Create the wide string from the incoming ansi string
-  DIM dwLen AS ulong, pbuffer AS ANY PTR
-  IF nCodePage = 0 THEN nCodePage = m_CodePage
-  IF nCodePage = ustring_CP_UTF8 THEN
-'      dwLen = MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), NULL, 0)
-    dwLen = ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), 0, 0)
-    IF dwLen = 0 THEN RETURN
-    dwLen *= 2
-    pbuffer = Allocate(dwLen)
-'      MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
-    ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
 
-  ELSE
-    dwLen = .LEN(ansiStr)
-    dwLen *= 2
-    pbuffer = Allocate(dwLen)
-'      MultiByteToWideChar(m_CodePage, MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
-    ustring_mtwc(m_CodePage, ustring_MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
-  END IF
+  DIM dwLen AS ulong, pbuffer AS wstring PTR
+
+'***********************************************************************************************
+'***********************************************************************************************
+   dwlen = len(ansistr) * 5                           'enough even, if each byte converts to a surrogate pair
+   pbuffer = Allocate(dwLen)
+
+   *pbuffer = ansistr
+   dwlen = len(*pbuffer) * 2
+
+'***********************************************************************************************
+'***********************************************************************************************
+
+'  IF nCodePage = 0 THEN nCodePage = m_CodePage
+'  IF nCodePage = ustring_CP_UTF8 THEN
+''      dwLen = MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), NULL, 0)
+'    dwLen = ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), 0, 0)
+'    IF dwLen = 0 THEN RETURN
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'
+'  ELSE
+'    dwLen = .LEN(ansiStr)
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(m_CodePage, MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(m_CodePage, ustring_MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'
+''ods(ansistr)
+''odx(dwlen)
+'  END IF
+
   IF pbuffer THEN
 
     this.AppendBuffer(pbuffer, dwLen)                 'copy the string into the buffer and update the length
@@ -1160,7 +1209,7 @@ end function
 '***********************************************************************************************
 
 
-PRIVATE FUNCTION mid_ (BYREF w AS WSTRING, BYVAL i AS ULONG, n AS ULONG = 0) AS ustring
+PRIVATE FUNCTION mid_ (BYREF w AS WSTRING, BYVAL i AS ULONG, byval n AS ULONG = 0) AS ustring
 '***********************************************************************************************
 ' return n chars of w, starting at i (one based)
 '***********************************************************************************************
@@ -1200,50 +1249,50 @@ end function
 '***********************************************************************************************
 
 
-PRIVATE FUNCTION CHRTOUTF8_ overload (BYref u AS USTRING) AS STRING
-'***********************************************************************************************
-' convert a unicode string into an UTF8 encoded string, this is a lossless conversion
-'***********************************************************************************************
-DIM dwLen AS DWORD = pp__jk_wctm(pp__jk_CP_UTF8, 0, *u, LEN(u), NULL, 0, NULL, NULL)
-
-
-  IF dwLen THEN
-    DIM ansiStr AS STRING = SPACE(dwLen)
-    dwLen = pp__jk_wctm(pp__jk_CP_UTF8, 0, *u, LEN(u), STRPTR(ansiStr), LEN(ansiStr), NULL, NULL)
-    IF dwLen THEN RETURN ansiStr
-  END IF
-
-
-  return ""
-
-
-end function
-
-
-'***********************************************************************************************
-
-
-PRIVATE FUNCTION UTF8TOCHR_ overload (BYREF ansiStr AS CONST STRING) AS ustring
-'***********************************************************************************************
-' convert an UTF8 encoded string into an unicode string, this is a lossless conversion as long
-' as the receiving string type is a wide string (USTRING or WSTRING), if the receiving string
-' is an ansi string (STRING or ZSTRING) unicode characters "outside" the current codepage are
-' converted to "?" or similar.
-'***********************************************************************************************
-DIM dwLen AS DWORD = pp__jk_mtwc(CP_UTF8, 0, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), NULL, 0)
-
-
-  IF dwLen THEN
-     DIM u AS ustring = SPACE(dwLen)
-     dwLen = pp__jk_mtwc(pp__jk_CP_UTF8, 0, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), *u, dwLen)
-     IF dwLen THEN RETURN u
-  END IF
-
-
-  return ""
-
-
-end function
+'PRIVATE FUNCTION CHRTOUTF8_ overload (BYref u AS USTRING) AS STRING
+''***********************************************************************************************
+'' convert a unicode string into an UTF8 encoded string, this is a lossless conversion
+''***********************************************************************************************
+'DIM dwLen AS DWORD = pp__jk_wctm(pp__jk_CP_UTF8, 0, *u, LEN(u), NULL, 0, NULL, NULL)
+'
+'
+'  IF dwLen THEN
+'    DIM ansiStr AS STRING = SPACE(dwLen)
+'    dwLen = pp__jk_wctm(pp__jk_CP_UTF8, 0, *u, LEN(u), STRPTR(ansiStr), LEN(ansiStr), NULL, NULL)
+'    IF dwLen THEN RETURN ansiStr
+'  END IF
+'
+'
+'  return ""
+'
+'
+'end function
+'
+'
+''***********************************************************************************************
+'
+'
+'PRIVATE FUNCTION UTF8TOCHR_ overload (BYREF ansiStr AS CONST STRING) AS ustring
+''***********************************************************************************************
+'' convert an UTF8 encoded string into an unicode string, this is a lossless conversion as long
+'' as the receiving string type is a wide string (USTRING or WSTRING), if the receiving string
+'' is an ansi string (STRING or ZSTRING) unicode characters "outside" the current codepage are
+'' converted to "?" or similar.
+''***********************************************************************************************
+'DIM dwLen AS DWORD = pp__jk_mtwc(CP_UTF8, 0, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), NULL, 0)
+'
+'
+'  IF dwLen THEN
+'     DIM u AS ustring = SPACE(dwLen)
+'     dwLen = pp__jk_mtwc(pp__jk_CP_UTF8, 0, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), *u, dwLen)
+'     IF dwLen THEN RETURN u
+'  END IF
+'
+'
+'  return ""
+'
+'
+'end function
 
 
 '***********************************************************************************************
@@ -1276,11 +1325,11 @@ DIM dwLen AS DWORD
   if nCodePage < 0 then                               'just pass data
     dwLen = LEN(ansiStr)
     u = SPACE(dwLen)
-    mcpy(*u, cptr(any ptr, strptr(ansiStr)), dwLen)
+    ustring_mcpy(*u, cptr(any ptr, strptr(ansiStr)), dwLen)
     
   else                                                'ansi to unicode conversion
     u     = SPACE(LEN(ansiStr))
-    dwLen = pp__jk_mtwc(nCodePage, pp__jk_MB_PRECOMPOSED, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), *u, LEN(ansiStr) * 2)
+'    dwLen = pp__jk_mtwc(nCodePage, pp__jk_MB_PRECOMPOSED, cptr(zstring ptr, STRPTR(ansiStr)), LEN(ansiStr), *u, LEN(ansiStr) * 2)
   end if
 
 
@@ -1321,11 +1370,11 @@ DIM dwLen   AS DWORD
   if nCodePage < 0 then                               'just pass data
     dwLen = LEN(w) * 2
     ansiStr = SPACE(dwLen)
-    mcpy(cptr(any ptr, strptr(ansiStr)), cptr(any ptr, *w), dwLen)
+    ustring_mcpy(cptr(any ptr, strptr(ansiStr)), cptr(any ptr, *w), dwLen)
     
   else                                                'unicode to ansi conversion
     ansiStr = SPACE(LEN(w))
-    dwLen   = pp__jk_wctm(nCodePage, 0, *w, LEN(w), STRPTR(ansiStr), LEN(ansiStr), NULL, NULL)
+'    dwLen   = pp__jk_wctm(nCodePage, 0, *w, LEN(w), STRPTR(ansiStr), LEN(ansiStr), NULL, NULL)
   end if
 
 
@@ -2163,19 +2212,23 @@ DIM nPos AS LONG
 
   nPos = InstrRev(w, ANY ":/\")
   SELECT CASE oflag
-    CASE PATH_                                        'returns the path portion of file spec
+    CASE 1                                            'returns the path portion of file spec
+'    CASE PATH_                                        'returns the path portion of file spec
       IF nPos THEN u = MID(w, 1, nPos)
 
-    CASE NAME_                                        'retrieve the full filename
+    CASE 2                                            'retrieve the full filename
+'    CASE NAME_                                        'retrieve the full filename
        u = w
        IF nPos THEN u = MID(w, nPos + 1)              'get the filename
        nPos = InstrRev(u, ".")
        IF nPos THEN u = MID(u, 1, nPos - 1)
 
-    CASE NAMEX_                                       'retrieve the name and extension combined
+    CASE 3                                            'retrieve the name and extension combined
+'    CASE NAMEX_                                       'retrieve the name and extension combined
        IF nPos THEN u = MID(w, nPos + 1) ELSE u = w
 
-    CASE EXTN_                                        'retrieve the name and extension combined 
+    CASE 4                                            'retrieve the name and extension combined
+'    CASE EXTN_                                        'retrieve the name and extension combined 
        IF nPos THEN u = MID(w, nPos + 1) ELSE u = w   
        nPos = InStrRev(u, ".")
        IF nPos THEN u = MID(u, nPos) ELSE u = ""      'get the extension
