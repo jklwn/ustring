@@ -5,7 +5,7 @@
 ' ****************************************************************************************
 ' This code is copied and adapted from WinFBX with explicit permission of José Roca 
 ' under the condition that the original copyright applies (see below). 
-' All changes and additions are Copyright (c) 2018 Juergen Kuehlwein
+' All changes and additions are Copyright (c) 2019 Juergen Kuehlwein
 ' Freeware. Use at your own risk.
 ' THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
 ' EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF
@@ -96,7 +96,8 @@ const case_  = 1                                      'case$
 
 '***********************************************************************************************
 ' replacement for José Roca´s CWstr, if WinFBX is not present or is not used.
-' this is mostly a clone of his code 
+' this is mostly a clone of his code without Windows dependency and adapted to
+' work wih Linux as well.
 '***********************************************************************************************
 
 
@@ -714,12 +715,12 @@ END SUB
 
 
 PRIVATE PROPERTY DWSTR.Size() AS LONG
-  DWSTR_DP("DWSTR PROPERTY GET GrowSize")
+  DWSTR_DP("DWSTR PROPERTY GET Character Size")
   PROPERTY = u_size
 END PROPERTY
 
 PRIVATE PROPERTY DWSTR.Size (BYVAL nChars AS LONG)
-  DWSTR_DP("DWSTR PROPERTY SET Growsize")
+  DWSTR_DP("DWSTR PROPERTY SET Character Size")
   IF nChars > -1 THEN u_size = nChars ELSE u_size = -1
 END PROPERTY
 
