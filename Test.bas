@@ -1,11 +1,11 @@
 ﻿#compiler freebasic
-'#compile console 32 exe /o "-R"
+#compile console 32 exe /o "-R"
 '#compile console 32 exe /o "-gen gcc -R"
 '#compile console 32 exe /o "-gen gcc -R -exx"       
 '#compile console 32 exe /o "-R -w pedantic -exx"
 
 '#compile console 64 exe /o "-gen gcc -Wc -O3 -R"
-#compile console 32 exe /o "-gen gcc -Wc -O3 -R"
+'#compile console 32 exe /o "-gen gcc -Wc -O3 -R"
 '#compile console 64 exe /o "-R"
 
 
@@ -14,16 +14,12 @@
 '***********************************************************************************************
 
 
-#define unicode
-'#include once "windows.bi"
-'#include once "crt\mem.bi"
+'#define unicode
 
 
 #define jklw                                          'use "ustring.inc" alone
 #define jose                                          'use José´s type for USTRING
 
-
-#define marc                                          'future extension
 
 
 #ifdef jklw
@@ -35,19 +31,41 @@
     #include "ustring.inc"
 
   #else
-    #ifdef marc
-      #include "D:\PBwin10\IDE\Projects\FreeBASIC\DWString\dwstr.inc"
-      #include "ustring.inc"
-
-    #else
-      #include "ustring.inc"                          'fallback
-    #endif
+    #include "ustring.inc"                            'fallback
   #endif
 #endif
 
 
 
 '***********************************************************************************************
+' changes in FB
+'***********************************************************************************************
+'swap -> ok
+'iif -> ok
+'sadd/varptr/strptr -> ok   
+'asc -> ok                    
+'l/r/trim -> ok
+'select case -> ok (compiler)
+'left/right -> ok (overloaded functions needed)
+'mid statement/function -> ok (compiler)
+'lcase/ucase -> ok
+'instr(rev) -> ok
+'l/rset -> ok
+
+'CBOOL -> ok
+'CBYTE
+'CSHORT
+'CINT
+'CLNG
+'CLNGINT
+'CUBYTE
+'CUSHORT
+'CUINT
+'CULNG
+'CULNGINT
+'CSNG
+'CDBL
+
 
 ' MKD/I/L/LONGINT/S/SHORT  ?
 ' CVD/I/L/LONGINT/S/SHORT  ?
@@ -67,7 +85,7 @@
 '        r = 1
 '      end if
 
-			for i as integer = 1 to len(u)
+			for i as integer = 0 to len(u) - 1
 				if(u[i] <> w[i]) then
           r = 1                                       'signal error
 					exit for
@@ -269,6 +287,26 @@ dim z as long
 
 
   scope
+
+    '' assignment( using pointers )
+    scope
+      dim u as ustring = y
+      dim w as wstring * 50 = y
+
+      w[1] = asc("a")
+      u[1] = asc("a")
+
+
+      hCheckString(u, w)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - [] assignment failed"
+        print "  u: -" + u + "-"
+        print "  w: -" + w + "-"
+      end if
+    end scope
 
     '' assignment( byref rhs as const wstring )
     scope
@@ -1044,6 +1082,44 @@ dim z as long
 
   scope
     
+    '' iif
+    scope
+      dim w as wstring * 50 = y
+      dim u as ustring = y
+      dim w1 as wstring * 50
+      dim u1 as ustring 
+      dim p1 as wstring ptr
+      dim p2 as wstring ptr
+
+
+      u1 = iif(x<>0, u, wstr(""))
+      u1 = iif(x<>0, u1, w)
+      u1 = iif(x=0, w, u1)
+      u1 = u + iif(x<>0, u1, u)
+
+      w1 = iif(x<>0, u, wstr(""))
+      w1 = iif(x<>0, u1, w)
+      w1 = iif(x=0, w, u1)
+      w1 = u + iif(x=0, w1, u)
+
+      hCheckString(u1, w1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - IIF (WSTRING/USTRING)"
+        print "  u1: -" + u1 + "-"
+        print "  w1: -" + w1 + "-"
+      end if
+    end scope
+
+
+
+
+
+
+
+
     '' strptr
     scope
       dim w as wstring * 50 = y
@@ -1154,6 +1230,47 @@ dim z as long
         print "  ERROR (line#: " & __LINE__ & ") - WSTRING"
         print "  u: -" + u + "-"
         print "  w: -" + w + "-"
+      end if
+    end scope
+
+    '' swap
+    scope
+      dim w  as wstring * 50 = "12345"
+      dim w1  as wstring * 50 = "12345"
+      dim u  as ustring = "asdfg"
+      dim u1 as ustring = "asdfg"
+
+      swap u, w
+
+      hCheckString(u, w1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - SWAP"
+        print "  u: -" + u + "-"
+        print "  w1: -" + w1 + "-"
+      end if
+
+      hCheckString(w, u1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - SWAP"
+        print "  u1: -" + u1 + "-"
+        print "  w: -" + w + "-"
+      end if
+
+      swap u, u1
+      hCheckString(u1, w1)
+
+      if r = 1 then
+        x = 1
+        print
+        print "  ERROR (line#: " & __LINE__ & ") - SWAP"
+        print "  u1: -" + u1 + "-"
+        print "  w1: -" + w1 + "-"
       end if
     end scope
 
@@ -1749,8 +1866,8 @@ dim z as long
     end scope
 
     scope
-      dim w as wstring * 50 = wstr(12345)
-      dim u as ustring = wstr(12345)
+      dim w as wstring * 50 = wstr(12345678900)
+      dim u as ustring = wstr(12345678900)
 
       if vallng(w) <> vallng(u) then
         x = 1
@@ -1775,8 +1892,8 @@ dim z as long
     end scope
 
     scope
-      dim w as wstring * 50 = wstr(12345)
-      dim u as ustring = wstr(12345)
+      dim w as wstring * 50 = wstr(12345678900)
+      dim u as ustring = wstr(12345678900)
 
       if valulng(w) <> valulng(u) then
         x = 1
@@ -2803,6 +2920,7 @@ st = "ustring"
   print "Repeat_: ",,,
   x = 0
 
+  if uflag then goto do_wide_only21
 
   if repeat_(0, z) <> "" then
     x = 1
@@ -2832,6 +2950,7 @@ st = "ustring"
     print s & s & s & " - " & repeat_(3, s)
   end if
 
+do_wide_only21:
   if repeat_(0, w) <> "" then
     x = 1
     print
@@ -2878,6 +2997,9 @@ st = "ustring"
   print "Insert_: ",,,
   x = 0
 
+  if uflag then goto do_wide_only22
+
+
   if insert_(z, "", 5) <>  z then
     x = 1
     print
@@ -2913,6 +3035,7 @@ st = "ustring"
     print MID(s, 1, 4) + left(s, 3) + MID(s, 5) & " - " & insert_(s, left(s, 3), 5)
   end if
 
+do_wide_only22:
   if insert_(w, left(w, 3), 5) <>  MID(w, 1, 4) + left(w, 3) + MID(w, 5) then
     x = 1
     print
@@ -2943,6 +3066,9 @@ st = "ustring"
   print "StrReverse_: ",,,
   x = 0
 
+  if uflag then goto do_wide_only23
+
+
   if strreverse_(strreverse_(z)) <> z then
     x = 1
     print
@@ -2957,6 +3083,7 @@ st = "ustring"
     print s & " - " & strreverse_(strreverse_(z))
   end if
 
+do_wide_only23:
   if strreverse_(strreverse_(w)) <> w then
     x = 1
     print
@@ -4767,35 +4894,35 @@ do_wide_only9:
 st = "wstring"
 '***********************************************************************************************
 
-  if lset_(z, 0) <> "" then    
+  if lset_(w, 0) <> "" then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - lset 0 " & st 
-    print " - " & lset_(z, 0)
+    print " - " & lset_(w, 0)
   end if
 
-  if lset_(z, 25) <> left(z + space(25), 25) then    
+  if lset_(w, 25) <> left(w + space(25), 25) then    
     x = 1
     print
     print "ERROR (line#: " & __LINE__ & ") - lset 25 " & st 
-    print left(z + space(25), 25) & " - " & lset_(z, 25)
+    print left(w + space(25), 25) & " - " & lset_(w, 25)
   end if
 
   for i = 1 to 80
-    if lset_(z, i) <> left(z + space(i), i) then    
+    if lset_(w, i) <> left(w + space(i), i) then    
       x = 1
       print
       print "ERROR (line#: " & __LINE__ & ") - lset " & st 
-      print "i: " & str(i) & "  " & left(z + space(i), i) & " - " & lset_(z, i)
+      print "i: " & str(i) & "  " & left(w + space(i), i) & " - " & lset_(w, i)
     end if
   next i
 
   for i = 1 to 80
-    if lset_(z, i, "x") <> left(z + string(i, asc("x")), i) then    
+    if lset_(w, i, "x") <> left(w + string(i, asc("x")), i) then    
       x = 1
       print
       print "ERROR (line#: " & __LINE__ & ") - lset " & st 
-      print "i: " & str(i) & "  " & left(z + string(i, asc("x")), i) & " - " & lset_(z, i, "x")
+      print "i: " & str(i) & "  " & left(w + string(i, asc("x")), i) & " - " & lset_(w, i, "x")
     end if
   next i
 
@@ -5094,7 +5221,7 @@ st = "ustring"
     end if
   next i
 
-  for i = 2 to 7
+  for i = 1 to 7
     u1= left(u, 2) + string(i, 88) + mid(u, 3)
     
     if len(shrink_(u1, "X")) <> len(u) + 1 then    
@@ -5111,7 +5238,7 @@ st = "ustring"
     if len(shrink_(u1, "X")) <> len(u) + 2 then    
       x = 1
       print
-      print "ERROR (line#: " & __LINE__ & ") - shrink X inside " & st 
+      print "ERROR (line#: " & __LINE__ & ") - shrink X inside (2)" & st 
       print "i: " & str(i) & "  " & len(u) + 2 & " - " & len(shrink_(u1, "X"))
     end if
   next i

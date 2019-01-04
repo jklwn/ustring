@@ -96,7 +96,7 @@ const case_  = 1                                      'case$
 
 '***********************************************************************************************
 ' replacement for José Roca´s CWstr, if WinFBX is not present or is not used.
-' this is mostly a clone of his code 
+' this is mostly a clone of his code with a "JK_" prefix
 '***********************************************************************************************
 
 
@@ -166,9 +166,6 @@ end sub
 #pragma ONCE
 
 
-'#define ustring_Size (SizeOf(WSTRING))
-
-
 NAMESPACE JK                                          'obviously i cannot use "AFX" here
 TYPE DWSTR_ AS DWSTR                                  'Forward reference
 
@@ -194,17 +191,18 @@ TYPE DWSTR_ AS DWSTR                                  'Forward reference
 ' DWSTR CLASS
 '***********************************************************************************************
 
-#if sizeof(wstring) = 2
+
 TYPE DWSTR
   m_pBuffer AS UBYTE PTR                              'pointer to the buffer (in first place -> make strptr possible)
 
   Private:
     m_Capacity AS Ulong                               'the total size of the buffer
-    m_GrowSize AS LONG = 260 * SizeOf(WSTRING)        'how much to grow the buffer by when required
+    m_GrowSize AS LONG = 260 * 2                      'how much to grow the buffer by when required
+    m_CodePage AS ulong                               'unicode code page
+
 
   Public:
     m_BufferLen AS ulong                              'length in bytes of the current string in the buffer
-    u_size      as long = SizeOf(WSTRING)
 
     DECLARE CONSTRUCTOR
     DECLARE CONSTRUCTOR (BYVAL nChars AS ulong, BYVAL nCodePage AS ulong)
@@ -219,9 +217,6 @@ TYPE DWSTR
     DECLARE SUB ResizeBuffer (BYVAL nValue AS ulong)
     DECLARE FUNCTION AppendBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nNumBytes AS ulong) AS BOOLEAN
     DECLARE FUNCTION InsertBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nIndex AS ulong, BYVAL nNumBytes AS ulong) AS BOOLEAN
-
-    DECLARE PROPERTY Size () AS LONG
-    DECLARE PROPERTY Size (BYVAL nValue AS LONG)
     DECLARE PROPERTY GrowSize () AS LONG
     DECLARE PROPERTY GrowSize (BYVAL nValue AS LONG)
     DECLARE PROPERTY Capacity () AS ulong
@@ -237,7 +232,7 @@ TYPE DWSTR
     DECLARE SUB Add (BYVAL pwszStr AS WSTRING PTR)
     DECLARE SUB Add (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
 
-    DECLARE OPERATOR [] (BYVAL nIndex AS ulong) byref AS USHORT
+    DECLARE OPERATOR [] (BYVAL nIndex AS ulong) AS USHORT
 
     DECLARE OPERATOR CAST () BYREF AS WSTRING
     DECLARE OPERATOR CAST () AS ANY PTR
@@ -257,70 +252,7 @@ TYPE DWSTR
     DECLARE OPERATOR &= (BYVAL n AS LONGINT)
     DECLARE OPERATOR &= (BYVAL n AS DOUBLE)
 END TYPE
-#else
-TYPE DWSTR
-  m_pBuffer AS UBYTE PTR                              'pointer to the buffer (in first place -> make strptr possible)
 
-  Private:
-    m_Capacity AS Ulong                               'the total size of the buffer
-    m_GrowSize AS LONG = 260 * SizeOf(WSTRING)        'how much to grow the buffer by when required
-
-  Public:
-    m_BufferLen AS ulong                              'length in bytes of the current string in the buffer
-    u_size      as long = SizeOf(WSTRING)
-
-    DECLARE CONSTRUCTOR
-    DECLARE CONSTRUCTOR (BYVAL nChars AS ulong, BYVAL nCodePage AS ulong)
-    DECLARE CONSTRUCTOR (BYVAL pwszStr AS WSTRING PTR)
-    DECLARE CONSTRUCTOR (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
-    DECLARE CONSTRUCTOR (BYREF cws AS DWSTR)
-    DECLARE CONSTRUCTOR (BYVAL n AS LONGINT)
-    DECLARE CONSTRUCTOR (BYVAL n AS DOUBLE)
-
-    DECLARE DESTRUCTOR
-
-    DECLARE SUB ResizeBuffer (BYVAL nValue AS ulong)
-    DECLARE FUNCTION AppendBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nNumBytes AS ulong) AS BOOLEAN
-    DECLARE FUNCTION InsertBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nIndex AS ulong, BYVAL nNumBytes AS ulong) AS BOOLEAN
-
-    DECLARE PROPERTY Size () AS LONG
-    DECLARE PROPERTY Size (BYVAL nValue AS LONG)
-    DECLARE PROPERTY GrowSize () AS LONG
-    DECLARE PROPERTY GrowSize (BYVAL nValue AS LONG)
-    DECLARE PROPERTY Capacity () AS ulong
-    DECLARE PROPERTY Capacity (BYVAL nValue AS ulong)
-    DECLARE PROPERTY SizeAlloc (BYVAL nChars AS ulong)
-    DECLARE PROPERTY SizeOf () AS ulong
-    DECLARE PROPERTY CodePage () AS ulong
-    DECLARE PROPERTY CodePage (BYVAL nCodePage AS ulong)
-
-    DECLARE SUB Clear
-
-    DECLARE SUB Add (BYREF cws AS DWSTR)
-    DECLARE SUB Add (BYVAL pwszStr AS WSTRING PTR)
-    DECLARE SUB Add (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
-
-    DECLARE OPERATOR [] (BYVAL nIndex AS ulong) byref AS Ulong
-
-    DECLARE OPERATOR CAST () BYREF AS WSTRING
-    DECLARE OPERATOR CAST () AS ANY PTR
-
-    DECLARE OPERATOR LET (BYREF ansiStr AS STRING)
-    DECLARE OPERATOR LET (BYREF wszStr AS CONST WSTRING)
-    DECLARE OPERATOR LET (BYREF pwszStr AS WSTRING PTR)
-    DECLARE OPERATOR LET (BYREF cws AS DWSTR)
-
-    DECLARE OPERATOR += (BYREF wszStr AS WSTRING)
-    DECLARE OPERATOR += (BYREF cws AS DWSTR)
-    DECLARE OPERATOR += (BYREF ansiStr AS STRING)
-
-    DECLARE OPERATOR &= (BYREF wszStr AS WSTRING)
-    DECLARE OPERATOR &= (BYREF cws AS DWSTR)
-    DECLARE OPERATOR &= (BYREF ansiStr AS STRING)
-    DECLARE OPERATOR &= (BYVAL n AS LONGINT)
-    DECLARE OPERATOR &= (BYVAL n AS DOUBLE)
-END TYPE
-#endif
 
 '***********************************************************************************************
 ' DWSTR constructors
@@ -335,8 +267,9 @@ END CONSTRUCTOR
 
 PRIVATE CONSTRUCTOR DWSTR (BYVAL nChars AS ulong, BYVAL nCodePage AS ulong)
   DWSTR_DP("+++BEGIN- DWSTR CONSTRUCTOR nChars " & .WSTR(nChars))
-  IF nChars = 0 THEN nChars = m_GrowSize \ u_size
-  this.ResizeBuffer(nChars * u_size)                  'Create the initial buffer
+  m_CodePage = nCodePage                              'Store the code page
+  IF nChars = 0 THEN nChars = m_GrowSize \ 2
+  this.ResizeBuffer(nChars * 2)                       'Create the initial buffer
   DWSTR_DP("-END- DWSTR CONSTRUCTOR nChars - " & .WSTR(m_pBuffer))
 END CONSTRUCTOR
 
@@ -352,6 +285,7 @@ END CONSTRUCTOR
 
 PRIVATE CONSTRUCTOR DWSTR (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
   DWSTR_DP("+++BEGIN- DWSTR CONSTRUCTOR STRING - " & .WSTR(VARPTR(ansiStr)))
+  m_CodePage = nCodePage                              'Store the code page
   IF .LEN(ansiStr) THEN
      this.Add(ansiStr, nCodePage)                     'Add the passed ansi string
   ELSE
@@ -419,8 +353,8 @@ END OPERATOR
 
 
 PRIVATE OPERATOR LEN (BYREF cws AS DWSTR) AS ulong    'returns the length, in characters, of the DWSTR.
-  DWSTR_DP("DWSTR OPERATOR LEN - len: " & .WSTR(cws.m_BufferLen \ cws.u_size))
-  OPERATOR = cws.m_BufferLen \ cws.u_size
+  DWSTR_DP("DWSTR OPERATOR LEN - len: " & .WSTR(cws.m_BufferLen \ 2))
+  OPERATOR = cws.m_BufferLen \ 2
 END OPERATOR
 
 PRIVATE OPERATOR DWSTR.CAST () AS ANY PTR             'returns a pointer to the DWSTR buffer.
@@ -433,42 +367,15 @@ PRIVATE OPERATOR DWSTR.CAST () BYREF AS WSTRING       'returns the string data (
   OPERATOR = *cast(WSTRING PTR, m_pBuffer)
 END OPERATOR
 
-
-#if sizeof(wstring) = 2
-PRIVATE OPERATOR DWSTR.[] (BYVAL nIndex AS ulong) byref AS USHORT
+PRIVATE OPERATOR DWSTR.[] (BYVAL nIndex AS ulong) AS USHORT          
 '***********************************************************************************************
-' Returns the corresponding ASCII or Unicode integer representation of the character at the
-' zerobased position specified by the nIndex parameter. Can be used to change a value too.
+' Returns the corresponding ASCII or Unicode integer representation of the character at
+' the position specified by the nIndex parameter. Like the get Char property, but allowing
+' to use the [] syntax, e.g. value = cws[1]. Can't be used to change a value.
 '***********************************************************************************************
-static zero as ushort                                 'fallback for nIndex outside valid data
-
-  IF nIndex > (m_BufferLen \ u_size) THEN
-    zero = &HFFFF
-    OPERATOR = zero                                   'return 0
-    exit operator
-  end if
-  
-  OPERATOR = *cast(USHORT ptr, m_pBuffer + (nIndex * u_size))
+  IF nIndex > (m_BufferLen \ 2) - 1 THEN EXIT OPERATOR
+  OPERATOR = PEEK(USHORT, m_pBuffer + (nIndex * 2))
 END OPERATOR
-
-
-#else
-PRIVATE OPERATOR DWSTR.[] (BYVAL nIndex AS ulong) byref AS Ulong
-'***********************************************************************************************
-' Returns the corresponding ASCII or Unicode integer representation of the character at the
-' zerobased position specified by the nIndex parameter. Can be used to change a value too.
-'***********************************************************************************************
-static zero as ulong                                  'fallback for nIndex outside valid data
-
-  IF nIndex > (m_BufferLen \ u_size) THEN
-    zero = &HFFFFFFFF
-    OPERATOR = zero                                   'return 0
-    exit operator
-  end if
-  
-  OPERATOR = *cast(Ulong ptr, m_pBuffer + (nIndex * u_size))
-END OPERATOR
-#endif
 
 
 '***********************************************************************************************
@@ -566,10 +473,10 @@ END OPERATOR
 PRIVATE SUB DWSTR.ResizeBuffer (BYVAL nValue AS ulong)
   DWSTR_DP("DWSTR ResizeBuffer - Value = " & .WSTR(nValue))
   ' // If it is an odd value, make it even.
-  IF (nValue MOD u_size) <> 0 THEN nValue += 1
+  IF (nValue MOD 2) <> 0 THEN nValue += 1
   ' Increase the size of the existing buffer by creating a new buffer copying
   ' the existing data into it and then finally deleting the original buffer.
-  DIM pNewBuffer AS UBYTE PTR = Allocate(nValue + u_size)   ' // +2 to make room for the double null terminator.
+  DIM pNewBuffer AS UBYTE PTR = Allocate(nValue + 2)   ' // +2 to make room for the double null terminator.
   DWSTR_DP("DWSTR ResizeBuffer - pNewBuffer = " & .WSTR(pNewBuffer) & " - old buffer = " & (.WSTR(m_pBuffer)))
   IF m_pBuffer THEN
      IF nValue < m_BufferLen THEN m_BufferLen = nValue
@@ -582,11 +489,6 @@ PRIVATE SUB DWSTR.ResizeBuffer (BYVAL nValue AS ulong)
 
   m_pBuffer[m_BufferLen] = 0                          'mark the end of the string with a double null
   m_pBuffer[m_BufferLen + 1] = 0
-
-  if u_size > 2 then
-    m_pBuffer[m_BufferLen + 2] = 0
-    m_pBuffer[m_BufferLen + 3] = 0
-  end if
 
 
 END SUB
@@ -601,7 +503,7 @@ PRIVATE FUNCTION DWSTR.AppendBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nNumByte
   DWSTR_DP("DWSTR AppendBuffer " & .WSTR(m_BufferLen) & " " & .WSTR(nNumBytes))
 
   IF m_GrowSize < 0 THEN
-     IF (m_BufferLen + nNumBytes) > m_Capacity THEN this.ResizeBuffer((m_BufferLen + nNumBytes) * u_size)
+     IF (m_BufferLen + nNumBytes) > m_Capacity THEN this.ResizeBuffer((m_BufferLen + nNumBytes) * 2)
   ELSE
      IF (m_BufferLen + nNumBytes) > m_Capacity THEN this.ResizeBuffer(m_BufferLen + nNumBytes + m_GrowSize)
   END IF
@@ -616,12 +518,6 @@ PRIVATE FUNCTION DWSTR.AppendBuffer (BYVAL addrMemory AS ANY PTR, BYVAL nNumByte
 
   m_pBuffer[m_BufferLen] = 0                          'mark the end of the string with a double null
   m_pBuffer[m_BufferLen + 1] = 0
-
-  if u_size > 2 then
-    m_pBuffer[m_BufferLen + 2] = 0
-    m_pBuffer[m_BufferLen + 3] = 0
-  end if
-
   RETURN TRUE
   DWSTR_DP("--END - DWSTR AppendBuffer " & .WSTR(m_BufferLen))
 
@@ -655,7 +551,7 @@ PRIVATE SUB DWSTR.Add (BYVAL pwszStr AS WSTRING PTR)
   DIM nLenString AS ulong = .LEN(*pwszStr)   ' // Length in characters
   IF nLenString = 0 THEN RETURN
 
-  this.AppendBuffer(cast(ANY PTR, pwszStr), nLenString * u_size)              'copy the string into the buffer and update the length
+  this.AppendBuffer(cast(ANY PTR, pwszStr), nLenString * 2)              'copy the string into the buffer and update the length
 
 
 END SUB
@@ -669,11 +565,39 @@ PRIVATE SUB DWSTR.Add (BYREF ansiStr AS STRING, BYVAL nCodePage AS ulong = 0)
 
   DIM dwLen AS ulong, pbuffer AS wstring PTR
 
-  dwlen = len(ansistr) * 5                           'enough even, if each byte converts to a surrogate pair
-  pbuffer = Allocate(dwLen)
+'***********************************************************************************************
+' let FB´s intrinsic conversion do the job
+'***********************************************************************************************
 
-  *pbuffer = ansistr                                 'let FB´s intrinsic conversion do the job
-  dwlen = len(*pbuffer) * u_size
+   dwlen = len(ansistr) * 5                           'enough even, if each byte converts to a surrogate pair
+   pbuffer = Allocate(dwLen)
+
+   *pbuffer = ansistr
+   dwlen = len(*pbuffer) * 2
+
+'***********************************************************************************************
+'***********************************************************************************************
+
+'  IF nCodePage = 0 THEN nCodePage = m_CodePage
+'  IF nCodePage = ustring_CP_UTF8 THEN
+''      dwLen = MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), NULL, 0)
+'    dwLen = ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), 0, 0)
+'    IF dwLen = 0 THEN RETURN
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(ustring_CP_UTF8, 0, STRPTR(ansiStr), LEN(ansiStr), pbuffer, dwLen)
+'
+'  ELSE
+'    dwLen = .LEN(ansiStr)
+'    dwLen *= 2
+'    pbuffer = Allocate(dwLen)
+''      MultiByteToWideChar(m_CodePage, MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'    ustring_mtwc(m_CodePage, ustring_MB_PRECOMPOSED, STRPTR(ansiStr), .LEN(ansiStr), pbuffer, dwLen)
+'
+''ods(ansistr)
+''odx(dwlen)
+'  END IF
 
   IF pbuffer THEN
 
@@ -698,31 +622,12 @@ PRIVATE SUB DWSTR.Clear
 
   m_pBuffer[m_BufferLen] = 0                         'mark the end of the string with a double null
   m_pBuffer[m_BufferLen + 1] = 0
-
-  if u_size > 2 then
-    m_pBuffer[m_BufferLen + 2] = 0
-    m_pBuffer[m_BufferLen + 3] = 0
-  end if
-
-
 END SUB
 
 
 '***********************************************************************************************
 ' properties
 '***********************************************************************************************
-
-
-PRIVATE PROPERTY DWSTR.Size() AS LONG
-  DWSTR_DP("DWSTR PROPERTY GET GrowSize")
-  PROPERTY = u_size
-END PROPERTY
-
-PRIVATE PROPERTY DWSTR.Size (BYVAL nChars AS LONG)
-  DWSTR_DP("DWSTR PROPERTY SET Growsize")
-  IF nChars > -1 THEN u_size = nChars ELSE u_size = -1
-END PROPERTY
-
 
 '***********************************************************************************************
 ' Number of characters to preallocate to minimize multiple allocations when doing multiple
@@ -733,12 +638,12 @@ END PROPERTY
 
 PRIVATE PROPERTY DWSTR.GrowSize() AS LONG
   DWSTR_DP("DWSTR PROPERTY GET GrowSize")
-  IF m_GrowSize > -1 THEN PROPERTY = m_GrowSize \ u_size ELSE PROPERTY = m_GrowSize
+  IF m_GrowSize > -1 THEN PROPERTY = m_GrowSize \ 2 ELSE PROPERTY = m_GrowSize
 END PROPERTY
 
 PRIVATE PROPERTY DWSTR.GrowSize (BYVAL nChars AS LONG)
   DWSTR_DP("DWSTR PROPERTY SET Growsize")
-  IF nChars > -1 THEN m_GrowSize = nChars * u_size ELSE m_GrowSize = -1
+  IF nChars > -1 THEN m_GrowSize = nChars * 2 ELSE m_GrowSize = -1
 END PROPERTY
 
 
@@ -782,13 +687,29 @@ END PROPERTY
 PRIVATE PROPERTY DWSTR.SizeAlloc (BYVAL nChars AS ulong)
   DWSTR_DP("DWSTR PROPERTY SET SizeAlloc")
   ' // If the new capacity is the same that the current capacity, do nothing.
-  IF nChars = m_Capacity \ u_size THEN EXIT PROPERTY
-  this.ResizeBuffer(nChars * u_size)
+  IF nChars = m_Capacity \ 2 THEN EXIT PROPERTY
+  this.ResizeBuffer(nChars * 2)
 END PROPERTY
 
 PRIVATE PROPERTY DWSTR.SizeOf() AS ulong              'returns the capacity of the buffer in characters.
   DWSTR_DP("DWSTR PROPERTY GET SizeOf")
-  PROPERTY = m_Capacity \ u_size
+  PROPERTY = m_Capacity \ 2
+END PROPERTY
+
+
+'***********************************************************************************************
+' Gets/sets the code page used to ansi to unicode translations
+'***********************************************************************************************
+
+
+PRIVATE PROPERTY DWSTR.CodePage () AS ulong
+  DWSTR_DP("DWSTR PROPERTY GET CodePage - " & .WSTR(m_CodePage))
+  PROPERTY = m_CodePage
+END PROPERTY
+
+PRIVATE PROPERTY DWSTR.CodePage (BYVAL nCodePage AS ulong)
+  DWSTR_DP("DWSTR PROPERTY SET CodePage - " & .WSTR(nCodePage))
+  m_CodePage = nCodePage
 END PROPERTY
 
 
@@ -830,21 +751,96 @@ PRIVATE FUNCTION Val OVERLOAD (BYREF cws AS JK.DWSTR) AS DOUBLE
   RETURN .VAL(*cast(WSTRING PTR, cws.m_pBuffer))
 END FUNCTION
 
-PRIVATE FUNCTION Valint OVERLOAD (BYREF cws AS jk.DWSTR) AS long 
+PRIVATE FUNCTION Valint OVERLOAD (BYREF cws AS jk.DWSTR) AS long 'integer
    RETURN .VALINT(*cast(WSTRING PTR, cws.m_pBuffer))
 END FUNCTION
 
-PRIVATE FUNCTION ValLNG OVERLOAD (BYREF cws AS jk.DWSTR) AS longint 
+PRIVATE FUNCTION ValLNG OVERLOAD (BYREF cws AS jk.DWSTR) AS longint 'long
    RETURN .VALLNG(*cast(WSTRING PTR, cws.m_pBuffer))
 END FUNCTION
 
-PRIVATE FUNCTION ValUint OVERLOAD (BYREF cws as jk.DWSTR) AS ulong 
+PRIVATE FUNCTION ValUint OVERLOAD (BYREF cws as jk.DWSTR) AS ulong 'Uinteger
    RETURN .VALUINT(*cast(WSTRING PTR, cws.m_pBuffer))
 END FUNCTION
 
-PRIVATE FUNCTION ValULNG OVERLOAD (BYREF cws AS jk.DWSTR) AS ulongint 
+PRIVATE FUNCTION ValULNG OVERLOAD (BYREF cws AS jk.DWSTR) AS ulongint 'ulong
    RETURN .VALULNG(*cast(WSTRING PTR, cws.m_pBuffer))
 END FUNCTION
+
+
+'***********************************************************************************************
+'***********************************************************************************************
+
+
+'    #IFNDEF MY_STRPTR_REDEFINITION
+'        '#PRINT
+'        '#PRINT ====> REDEFINITION OF STRPTR ADDING DWSTR SUPPORT <====
+'        '#PRINT
+'        #UNDEF STRPTR                                 ' here is the trick undefining the normal STRPTR keyword
+'
+'        TYPE MY_STRING_FB_                            ' type to mimic the string struct and get access to each element
+'            DIM data1             AS ZSTRING PTR
+'            DIM len1              AS LONG
+'            DIM size1             AS LONG
+'        END TYPE
+'
+'        'replacement functions and extension to be able to use strptr() even with DWSTR
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF z AS const zSTRING) AS ZSTRING PTR 'same
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF s AS CONST STRING) AS ZSTRING PTR 'same
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF w AS CONST WSTRING) AS wSTRING PTR 'same, remark : gives same strange return
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF u AS CONST ustring) AS WSTRING PTR 'new, gives same behaviour as others
+'
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF z AS zSTRING) AS ZSTRING PTR 'same
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF s AS STRING) AS ZSTRING PTR 'same
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF w AS WSTRING) AS wSTRING PTR 'same, remark : gives same strange return
+'        DECLARE FUNCTION STRPTR OVERLOAD(BYREF u AS ustring) AS WSTRING PTR 'new, gives same behaviour as others
+'
+'        PRIVATE FUNCTION STRPTR(BYREF str1 AS CONST STRING) AS ZSTRING PTR
+'            DWSTR_DP( "STRPTR CONST STRING")
+'            if @str1 = NULL THEN RETURN NULL
+'            DIM my_lhs AS MY_STRING_FB_ PTR = Cptr(MY_STRING_FB_ PTR , @str1)
+'            RETURN my_lhs -> data1
+'        END FUNCTION
+'
+'        PRIVATE FUNCTION STRPTR(BYREF ws1 AS CONST WSTRING) AS wSTRING PTR
+'            DWSTR_DP( "STRPTR CONST WSTRING")
+'            RETURN Cptr(wSTRING PTR , @ws1)
+'        END FUNCTION
+'
+'        PRIVATE FUNCTION STRPTR(BYREF DWSTR1 AS CONST ustring) AS WSTRING PTR
+'            DWSTR_DP( "STRPTR CONST DWSTR")
+'            RETURN Cptr(WSTRING PTR , DWSTR1.m_Pbuffer)
+'        END FUNCTION
+'
+'        PRIVATE FUNCTION STRPTR(BYREF z AS const ZSTRING) AS ZSTRING PTR
+'            RETURN cptr(zstring ptr, @z)
+'        end function
+'
+'        PRIVATE FUNCTION STRPTR(BYREF z AS ZSTRING) AS ZSTRING PTR
+'            RETURN @z
+'        end function
+'
+'        PRIVATE FUNCTION STRPTR(BYREF str1 AS STRING) AS ZSTRING PTR
+'            DWSTR_DP( "STRPTR STRING")
+'            if @str1 = NULL THEN RETURN NULL
+'            DIM my_lhs AS MY_STRING_FB_ PTR = Cptr(MY_STRING_FB_ PTR , @str1)
+'            RETURN my_lhs -> data1
+'        END FUNCTION
+'
+'        PRIVATE FUNCTION STRPTR(BYREF ws1 AS WSTRING) AS wSTRING PTR
+'            DWSTR_DP( "STRPTR WSTRING")
+'            RETURN Cptr(wSTRING PTR , @ws1)
+'        END FUNCTION
+'
+'        PRIVATE FUNCTION STRPTR(BYREF DWSTR1 AS ustring) AS WSTRING PTR
+'            DWSTR_DP( "STRPTR DWSTR")
+'            RETURN Cptr(WSTRING PTR , DWSTR1.m_Pbuffer)
+'        END FUNCTION
+'
+'        #DEFINE MY_STRPTR_REDEFINITION
+'    #ENDIF
+
+
 
 
 '***********************************************************************************************
@@ -952,7 +948,7 @@ end function
 ' STRING to an unicode string.
 '***********************************************************************************************
 
-' needs revision !!!
+
 PRIVATE FUNCTION Ucode_ (BYREF ansiStr AS CONST STRING, BYVAL nCodePage AS LONG = 0) AS ustring
 '***********************************************************************************************
 ' convert string to ustring using ncodepage, default is CP_ACP (0 = default Windows ANSI code page) 
@@ -998,7 +994,6 @@ END FUNCTION
 '***********************************************************************************************
 
 
-' needs revision !!!
 PRIVATE FUNCTION Acode_ (BYref w AS USTRING, BYVAL nCodePage AS LONG = 0) AS STRING
 '***********************************************************************************************
 ' convert ustring to string using nCodePage, if < 0 pass data without conversion
@@ -1011,7 +1006,7 @@ DIM dwLen   AS long
 
 
   if nCodePage < 0 then                               'just pass data
-    dwLen = LEN(w) * sizeof(wstring)
+    dwLen = LEN(w) * 2
     ansiStr = SPACE(dwLen)
     ustring_mcpy(cptr(any ptr, strptr(ansiStr)), cptr(any ptr, *w), dwLen)
     
@@ -1106,7 +1101,7 @@ DIM mu AS wstring ptr
       LOOP
 
     else
-      mu = allocate(len(m) * sizeof(wstring) + 4) 
+      mu = allocate(len(m) * 2 + 4) 
 
       wu = ucase(w)
       *mu = ucase(m)
@@ -1135,7 +1130,7 @@ DIM mu AS wstring ptr
       LOOP
 
     else
-      mu = allocate(len(m) * sizeof(wstring) + 4) 
+      mu = allocate(len(m) * 2 + 4) 
 
       wu = ucase(w)
       *mu = ucase(m)
@@ -1516,8 +1511,8 @@ dim mu   as wstring ptr
       LOOP
 
     else
-      wu = allocate(len(w) * sizeof(wstring) + 4) 
-      mu = allocate(len(m) * sizeof(wstring) + 4) 
+      wu = allocate(len(w) * 2 + 4) 
+      mu = allocate(len(m) * 2 + 4) 
 
       *wu = ucase(w)
       *mu = ucase(m)
@@ -1564,8 +1559,8 @@ dim mu   as wstring ptr
       LOOP
 
     else
-      wu = allocate(len(w) * sizeof(wstring) + 4) 
-      mu = allocate(len(m) * sizeof(wstring) + 4) 
+      wu = allocate(len(w) * 2 + 4) 
+      mu = allocate(len(m) * 2 + 4) 
 
       *wu = ucase(w)
       *mu = ucase(m)
@@ -2023,8 +2018,8 @@ dim mu as wstring ptr
     end if
       
   else    
-    wu = allocate(len(w) * sizeof(wstring) + 4) 
-    mu = allocate(len(m) * sizeof(wstring) + 4) 
+    wu = allocate(len(w) * 2 + 4) 
+    mu = allocate(len(m) * 2 + 4) 
 
     *wu = ucase(w)
     *mu = ucase(m)
@@ -2088,6 +2083,7 @@ end function
 '***********************************************************************************************
 
 
+'PRIVATE FUNCTION parsecount overload (BYREF w AS WSTRING, byval anyflag as long = 0, BYREF m AS WSTRING = " ", byval iflag as long = 0) AS ULONG
 PRIVATE FUNCTION parsecount overload (BYREF w AS WSTRING, byval anyflag as const boolean = 0, BYREF m AS WSTRING = " ", byval iflag as long = 0) AS ULONG
 '***********************************************************************************************
 ' return count of portions of w sparated by m, anyflag = 1/0 chars in m individually/as string 
